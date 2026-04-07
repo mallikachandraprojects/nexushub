@@ -6,6 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
     <title>Nexus Hub | Elite Gamified Deals</title>
     <style>
         :root {
@@ -509,6 +510,47 @@
         
         .magical-modal.show { display: flex; }
         .magical-modal.show .magical-content { transform: scale(1); opacity: 1; }
+
+        /* Floating Navigation */
+        .scroll-btn {
+            position: fixed;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(10, 10, 10, 0.7);
+            border: 1px solid var(--accent-neon);
+            color: var(--accent-neon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .scroll-btn:hover {
+            background: var(--accent-neon);
+            color: #000;
+            transform: scale(1.1);
+            box-shadow: 0 0 10px var(--accent-neon);
+        }
+        
+        .scroll-btn.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #scroll-top {
+            bottom: 80px;
+        }
+        
+        #scroll-bottom {
+            bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -517,7 +559,7 @@
         <div style="display: flex; align-items: center; gap: 20px;">
             <div class="logo">Nexus Hub <div id="user-points">💎 0 POINTS</div></div>
             <div class="global-search-container">
-                <input type="text" id="nexus-search" placeholder="Search Laptop, Cameras..." onkeyup="searchNexusHub()" style="background: rgba(0,0,0,0.5); color: var(--primary-neon); border: 1px solid var(--primary-neon); padding: 0.6rem 1.5rem; font-size: 0.9rem; font-weight: 700; outline: none; border-radius: 20px; width: 280px; box-shadow: 0 0 10px rgba(0,240,255,0.2); transition: all 0.3s;">
+                <input type="text" id="nexus-search" placeholder="✨ AI Search (Laptops, Shoes...)" onkeyup="searchNexusHub()" style="background: rgba(0,0,0,0.6); color: var(--primary-neon); border: 1px solid var(--primary-neon); padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 700; outline: none; border-radius: 25px; width: 300px; box-shadow: 0 0 15px rgba(0,240,255,0.4); text-shadow: 0 0 5px rgba(0,240,255,0.7); transition: all 0.3s;">
             </div>
         </div>
         <div class="tabs-nav" id="main-tabs">
@@ -34512,40 +34554,97 @@
             });
         }
 
-        // Live Global Search Filter
+        // Advanced AI Fuzzy Semantic Search
         let searchTimeout = null;
+        let aiSearchIndex = null;
+        let fuseInstance = null;
+        
+        function initAISearch() {
+            if(fuseInstance) return;
+            aiSearchIndex = [];
+            document.querySelectorAll('.card').forEach((card, index) => {
+                const titleElement = card.querySelector('.card-title');
+                if(!titleElement) return;
+                
+                aiSearchIndex.push({
+                    id: index,
+                    element: card,
+                    title: titleElement.innerText.toLowerCase(),
+                    metaText: card.innerText.toLowerCase()
+                });
+            });
+            
+            fuseInstance = new Fuse(aiSearchIndex, {
+                keys: [
+                    { name: 'title', weight: 0.8 },
+                    { name: 'metaText', weight: 0.2 }
+                ],
+                includeScore: true,
+                threshold: 0.4,
+                ignoreLocation: true
+            });
+        }
+
         function searchNexusHub() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 const query = document.getElementById('nexus-search').value.toLowerCase().trim();
+                if(typeof Fuse !== 'undefined') initAISearch();
                 
-                // Un-hide all tab elements while searching so the user can see matches immediately
-                if(query.length > 0) {
-                    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'block');
-                } else {
+                if(query.length === 0) {
                     document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = '');
+                    document.querySelectorAll('.card').forEach(card => {
+                        card.style.display = 'flex';
+                        card.style.order = '0';
+                        card.style.boxShadow = '';
+                        card.style.borderColor = '';
+                    });
+                    document.querySelectorAll('.grid-container').forEach(grid => {
+                        grid.style.display = 'grid';
+                    });
+                    return;
                 }
                 
-                const cards = document.querySelectorAll('.card');
-                cards.forEach(card => {
-                    const titleText = card.querySelector('.card-title') ? card.querySelector('.card-title').innerText.toLowerCase() : '';
-                    const fullText = card.innerText.toLowerCase();
-                    
-                    if (titleText === query) {
-                        card.style.display = 'flex';
-                        card.style.order = '-2';
-                    } else if (titleText.includes(query)) {
-                        card.style.display = 'flex';
-                        card.style.order = '-1';
-                    } else if (fullText.includes(query)) {
-                        card.style.display = 'flex';
-                        card.style.order = '0';
-                    } else {
-                        card.style.display = 'none';
-                        card.style.order = '0';
-                    }
+                document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'block');
+                
+                document.querySelectorAll('.card').forEach(card => {
+                    card.style.display = 'none'; 
+                    card.style.order = '0';
+                    card.style.boxShadow = '';
+                    card.style.borderColor = '';
                 });
-            }, 300); // 300ms debounce
+
+                if(fuseInstance && query.length > 0) {
+                    const results = fuseInstance.search(query);
+                    results.forEach((res, index) => {
+                        const card = res.item.element;
+                        card.style.display = 'flex';
+                        card.style.order = index; // Best relevance ranks at top smoothly
+                        if(index < 3) {
+                            card.style.boxShadow = '0 0 15px var(--primary-neon)';
+                        }
+                    });
+                } else {
+                    // Fallback to strict native if CDN fails
+                    const cards = document.querySelectorAll('.card');
+                    cards.forEach(card => {
+                        const titleText = card.querySelector('.card-title') ? card.querySelector('.card-title').innerText.toLowerCase() : '';
+                        if (titleText.includes(query)) card.style.display = 'flex';
+                    });
+                }
+                
+                document.querySelectorAll('.grid-container').forEach(grid => {
+                    grid.style.display = 'flex';
+                    grid.style.flexWrap = 'wrap';
+                    Array.from(grid.children).forEach(child => {
+                        if (child.classList.contains('card')) {
+                            child.style.width = '280px';
+                            child.style.flexGrow = '1';
+                        }
+                    });
+                });
+
+            }, 300);
         }
 
         // Particle System: Star Exploasion on Click
@@ -34723,6 +34822,43 @@
         
         loadLiveEliteDeals();
         setInterval(loadLiveEliteDeals, 180000);
+    </script>
+    
+    <!-- Floating Navigation -->
+    <div id="scroll-top" class="scroll-btn" title="Back to Top">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </div>
+    <div id="scroll-bottom" class="scroll-btn show" title="Jump to Bottom">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+    </div>
+    <script>
+        const scrollTopBtn = document.getElementById('scroll-top');
+        const scrollBottomBtn = document.getElementById('scroll-bottom');
+
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY;
+            const scrollMax = document.documentElement.scrollHeight - window.innerHeight;
+            
+            if (scrollPos > 300) {
+                scrollTopBtn.classList.add('show');
+            } else {
+                scrollTopBtn.classList.remove('show');
+            }
+            
+            if (scrollPos > scrollMax - 100) {
+                scrollBottomBtn.classList.remove('show');
+            } else {
+                scrollBottomBtn.classList.add('show');
+            }
+        });
+
+        scrollTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        scrollBottomBtn.addEventListener('click', () => {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        });
     </script>
 </body>
 </html>
