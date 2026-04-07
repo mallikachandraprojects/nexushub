@@ -45892,6 +45892,41 @@
             return q.toLowerCase().replace(/[^\w\s]/g, "");
         }
 
+        // LEVENSHTEIN DISTANCE MATRIX ALGORITHM
+        function getLevenshteinDistance(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1, // Substitution
+                            Math.min(matrix[i][j - 1] + 1, // Insertion
+                            matrix[i - 1][j] + 1) // Deletion
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        function isFuzzyMatch(word, text, maxDistance = 2) {
+            if (text.includes(word)) return { match: true, dist: 0 };
+            
+            const tokens = text.split(/\s+/);
+            let minD = 999;
+            for (let t of tokens) {
+                if (Math.abs(t.length - word.length) > maxDistance) continue;
+                let d = getLevenshteinDistance(word, t);
+                if (d < minD) minD = d;
+            }
+            return { match: minD <= maxDistance, dist: minD };
+        }
+
         function extractIntent(query) {
             let n = normalizeString(query);
             return {
@@ -45940,8 +45975,20 @@
                     if (intent.raw.length > 0) {
                         let rankScore = 0;
                         const matchesAll = intent.raw.every(kw => {
+                            // Exact Match (+5)
                             if (titleStr.includes(kw)) { rankScore += 5; return true; }
+                            
+                            // Fuzzy Match on Typo (+3)
+                            const fuzzyTitle = isFuzzyMatch(kw, titleStr, 2);
+                            if (fuzzyTitle.match) { rankScore += 3; return true; }
+                            
+                            // Standard Category Match (+2)
                             if (breadcrumb.includes(kw)) { rankScore += 2; return true; }
+                            
+                            // Fuzzy Category Bound (+1)
+                            const fuzzyBread = isFuzzyMatch(kw, breadcrumb, 2);
+                            if (fuzzyBread.match) { rankScore += 1; return true; }
+                            
                             return false;
                         });
                         
@@ -45953,7 +46000,7 @@
                     }
                 });
                 
-                // Sorting implicitly on Neural Weights
+                // Algorithmic Sorting System (ML Equivalent Weights)
                 if (intent.raw.length > 0) {
                     document.querySelectorAll('.grid-container').forEach(grid => {
                         let cards = Array.from(grid.querySelectorAll('.card'));
