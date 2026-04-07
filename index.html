@@ -558,8 +558,11 @@
     <nav>
         <div style="display: flex; align-items: center; gap: 20px;">
             <div class="logo">Nexus Hub <div id="user-points">💎 0 POINTS</div></div>
-            <div class="global-search-container">
-                <input type="text" id="nexus-search" placeholder="✨ AI Search (Laptops, Shoes...)" onkeyup="searchNexusHub()" style="background: rgba(0,0,0,0.6); color: var(--primary-neon); border: 1px solid var(--primary-neon); padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 700; outline: none; border-radius: 25px; width: 300px; box-shadow: 0 0 15px rgba(0,240,255,0.4); text-shadow: 0 0 5px rgba(0,240,255,0.7); transition: all 0.3s;">
+            <div class="global-search-container" style="display: flex; align-items: center; gap: 15px; position: relative;">
+                <input type="text" id="nexus-search" placeholder="✨ AI Search (Laptops, Shoes...)" onkeypress="if(event.key === 'Enter') executeAIFilter()" style="background: rgba(0,0,0,0.6); color: var(--primary-neon); border: 1px solid var(--primary-neon); padding: 0.6rem 1.5rem; font-size: 0.95rem; font-weight: 700; outline: none; border-radius: 25px; width: 300px; box-shadow: 0 0 15px rgba(0,240,255,0.4); text-shadow: 0 0 5px rgba(0,240,255,0.7); transition: all 0.3s;">
+                <button onclick="executeAIFilter()" style="background: transparent; color: var(--primary-neon); border: 2px solid var(--primary-neon); padding: 0.6rem 1.5rem; border-radius: 25px; font-weight: 900; font-size: 0.95rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: all 0.3s; box-shadow: inset 0 0 10px rgba(0,240,255,0.2), 0 0 15px rgba(0,240,255,0.4);">
+                    <span style="font-size: 1rem; margin-right: 5px;">🔍</span> Search
+                </button>
             </div>
         </div>
         <div class="tabs-nav" id="main-tabs">
@@ -45939,85 +45942,122 @@
             };
         }
 
-        let searchTimeout;
-        function searchNexusHub() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const query = document.getElementById('nexus-search').value;
-                const intent = extractIntent(query);
+        // ==============================================
+        // NEURAL GAMIFIED OVERLAY & SEARCH EXECUTION
+        // ==============================================
+        
+        function executeAIFilter() {
+            const query = document.getElementById('nexus-search').value.trim();
+            if (!query) {
+                searchNexusHub(); // Immediately restore state without visual overhead
+                return;
+            }
+            
+            // 1. Instanciate Gamified Overlay
+            const overlay = document.createElement('div');
+            overlay.id = "ai-processing-overlay";
+            overlay.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5, 8, 17, 0.95); backdrop-filter: blur(15px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999999;">
+                    <div style="width: 80px; height: 80px; border: 4px solid rgba(0, 240, 255, 0.2); border-top: 4px solid var(--primary-neon); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                    <h2 style="color: var(--primary-neon); margin-top: 2.5rem; font-weight: 900; letter-spacing: 3px; animation: glitch 2s infinite; font-size: 1.8rem; text-shadow: 0 0 20px var(--primary-neon);">🧠 NEURAL INTENT SCANNING...</h2>
+                    <p style="color: var(--gold-color); margin-top: 15px; font-family: monospace; font-size: 1.1rem; letter-spacing: 1px;">Evaluating Levenshtein Matrices & Parametric Bounds...</p>
+                </div>
+                <style>
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+            `;
+            document.body.appendChild(overlay);
+
+            // 2. Mock 1.2s Artificial Database Traversal Constraint before Evaluation Bounds
+            setTimeout(() => {
+                searchNexusHub();
                 
-                document.querySelectorAll('.card').forEach(card => {
-                    const titleNode = card.querySelector('.card-title');
-                    if(!titleNode) return;
-                    
-                    const titleStr = normalizeString(titleNode.textContent);
-                    const bcNode = card.querySelector('.meta-breadcrumb');
-                    const breadcrumb = bcNode ? bcNode.textContent.toLowerCase() : "";
-                    
-                    if (currentActiveBreadcrumb && !breadcrumb.startsWith(currentActiveBreadcrumb.toLowerCase())) {
+                // CSS Dissolve Extraction Array
+                overlay.style.transition = "opacity 0.4s ease-out, transform 0.4s ease-out";
+                overlay.style.opacity = "0";
+                overlay.style.transform = "scale(1.1)";
+                setTimeout(() => overlay.remove(), 400);
+            }, 1200);
+        }
+
+        // Core Algorithm Evaluation Pipeline
+        function searchNexusHub() {
+            const query = document.getElementById('nexus-search').value;
+            const intent = extractIntent(query);
+            
+            document.querySelectorAll('.card').forEach(card => {
+                const titleNode = card.querySelector('.card-title');
+                if(!titleNode) return;
+                
+                const titleStr = normalizeString(titleNode.textContent);
+                const bcNode = card.querySelector('.meta-breadcrumb');
+                const breadcrumb = bcNode ? bcNode.textContent.toLowerCase() : "";
+                
+                // Active Nested Isolation (Prevents Cross-Pollution)
+                if (currentActiveBreadcrumb && !breadcrumb.startsWith(currentActiveBreadcrumb.toLowerCase())) {
+                    card.style.display = "none";
+                    return;
+                }
+                
+                if (intent.isWomen && !breadcrumb.includes("women")) { card.style.display = "none"; return; }
+                if (intent.isMen && !breadcrumb.includes("men")) { card.style.display = "none"; return; }
+                if (intent.isKids && !breadcrumb.includes("kid") && !breadcrumb.includes("child")) { card.style.display = "none"; return; }
+                
+                if (intent.priceFilter) {
+                    const priceNode = card.querySelector('.card-price');
+                    const priceNum = priceNode ? parseInt(priceNode.textContent.replace(/[^0-9]/g, '')) : 9999;
+                    if (priceNum > intent.priceFilter) {
                         card.style.display = "none";
                         return;
                     }
-                    
-                    if (intent.isWomen && !breadcrumb.includes("women")) { card.style.display = "none"; return; }
-                    if (intent.isMen && !breadcrumb.includes("men")) { card.style.display = "none"; return; }
-                    if (intent.isKids && !breadcrumb.includes("kid") && !breadcrumb.includes("child")) { card.style.display = "none"; return; }
-                    
-                    if (intent.priceFilter) {
-                        const priceNode = card.querySelector('.card-price');
-                        const priceNum = priceNode ? parseInt(priceNode.textContent.replace(/[^0-9]/g, '')) : 9999;
-                        if (priceNum > intent.priceFilter) {
-                            card.style.display = "none";
-                            return;
-                        }
-                    }
-
-                    if (intent.raw.length > 0) {
-                        let rankScore = 0;
-                        const matchesAll = intent.raw.every(kw => {
-                            // Exact Match (+5)
-                            if (titleStr.includes(kw)) { rankScore += 5; return true; }
-                            
-                            // Fuzzy Match on Typo (+3)
-                            const fuzzyTitle = isFuzzyMatch(kw, titleStr, 2);
-                            if (fuzzyTitle.match) { rankScore += 3; return true; }
-                            
-                            // Standard Category Match (+2)
-                            if (breadcrumb.includes(kw)) { rankScore += 2; return true; }
-                            
-                            // Fuzzy Category Bound (+1)
-                            const fuzzyBread = isFuzzyMatch(kw, breadcrumb, 2);
-                            if (fuzzyBread.match) { rankScore += 1; return true; }
-                            
-                            return false;
-                        });
-                        
-                        card.dataset.aiRank = rankScore;
-                        card.style.display = matchesAll ? "flex" : "none";
-                    } else {
-                        card.dataset.aiRank = 0;
-                        card.style.display = "flex";
-                    }
-                });
-                
-                // Algorithmic Sorting System (ML Equivalent Weights)
-                if (intent.raw.length > 0) {
-                    document.querySelectorAll('.grid-container').forEach(grid => {
-                        let cards = Array.from(grid.querySelectorAll('.card'));
-                        cards.sort((a, b) => (parseInt(b.dataset.aiRank) || 0) - (parseInt(a.dataset.aiRank) || 0));
-                        cards.forEach(c => grid.appendChild(c));
-                    });
                 }
-                
+
+                if (intent.raw.length > 0) {
+                    let rankScore = 0;
+                    const matchesAll = intent.raw.every(kw => {
+                        // Exact Match (+5)
+                        if (titleStr.includes(kw)) { rankScore += 5; return true; }
+                        
+                        // Fuzzy Match on Typo (+3)
+                        const fuzzyTitle = isFuzzyMatch(kw, titleStr, 2);
+                        if (fuzzyTitle.match) { rankScore += 3; return true; }
+                        
+                        // Standard Category Match (+2)
+                        if (breadcrumb.includes(kw)) { rankScore += 2; return true; }
+                        
+                        // Fuzzy Category Bound (+1)
+                        const fuzzyBread = isFuzzyMatch(kw, breadcrumb, 2);
+                        if (fuzzyBread.match) { rankScore += 1; return true; }
+                        
+                        return false;
+                    });
+                    
+                    card.dataset.aiRank = rankScore;
+                    card.style.display = matchesAll ? "flex" : "none";
+                } else {
+                    card.dataset.aiRank = 0;
+                    card.style.display = "flex";
+                }
+            });
+            
+            // Algorithmic Sorting System (ML Equivalent Weights)
+            if (intent.raw.length > 0) {
                 document.querySelectorAll('.grid-container').forEach(grid => {
-                    const visibleCards = Array.from(grid.querySelectorAll('.card')).filter(c => c.style.display !== 'none');
-                    if (grid.previousElementSibling && grid.previousElementSibling.tagName === 'H2' && grid.id !== 'elite-deals-live-grid') {
-                        grid.previousElementSibling.style.display = visibleCards.length > 0 ? 'flex' : 'none';
-                    }
+                    let cards = Array.from(grid.querySelectorAll('.card'));
+                    cards.sort((a, b) => (parseInt(b.dataset.aiRank) || 0) - (parseInt(a.dataset.aiRank) || 0));
+                    cards.forEach(c => grid.appendChild(c));
                 });
-                
-                if (typeof toggleFloatingNav === "function") toggleFloatingNav();
-            }, 300);
+            }
+            
+            // Empty Grid Extraction Routine
+            document.querySelectorAll('.grid-container').forEach(grid => {
+                const visibleCards = Array.from(grid.querySelectorAll('.card')).filter(c => c.style.display !== 'none');
+                if (grid.previousElementSibling && grid.previousElementSibling.tagName === 'H2' && grid.id !== 'elite-deals-live-grid') {
+                    grid.previousElementSibling.style.display = visibleCards.length > 0 ? 'flex' : 'none';
+                }
+            });
+            
+            if (typeof toggleFloatingNav === "function") toggleFloatingNav();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
