@@ -45774,51 +45774,208 @@
             });
         }
 
-        // Advanced AI Fuzzy Semantic Search
-        let searchTimeout = null;
-        let aiSearchIndex = null;
-        let fuseInstance = null;
-        
-        function initAISearch() {
-            console.log("DOM Dimensional Search Vector Active");
+        let currentActiveBreadcrumb = null;
+        let taxonomyTree = {};
+
+        function buildAmazonTaxonomy() {
+            taxonomyTree = {};
+            document.querySelectorAll('.card').forEach(card => {
+                const bcNode = card.querySelector('.meta-breadcrumb');
+                if (!bcNode || !bcNode.textContent) return;
+                
+                const pathParts = bcNode.textContent.split('→').map(s => s.trim());
+                if (pathParts.length === 0) return;
+
+                let currentLevel = taxonomyTree;
+                pathParts.forEach((part) => {
+                    if (!currentLevel[part]) {
+                        currentLevel[part] = { _children: {} };
+                    }
+                    currentLevel = currentLevel[part]._children;
+                });
+            });
+            renderNavLevel(taxonomyTree, []);
         }
 
-        function searchNexusHub() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const queryStr = document.getElementById('nexus-search').value.toLowerCase().trim();
-                const keywords = queryStr.split(/\s+/).filter(k => k.length > 0);
-                
-                if(keywords.length === 0) {
-                    document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = '');
-                    document.querySelectorAll('.card').forEach(card => card.style.display = 'flex');
-                    document.querySelectorAll('.grid-container').forEach(grid => grid.style.display = 'grid');
-                    if (typeof toggleFloatingNav === "function") toggleFloatingNav();
-                    return;
-                }
-                
-                document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'block');
-                
-                document.querySelectorAll('.card').forEach(card => {
-                    const textContent = card.textContent.toLowerCase(); 
+        function renderNavLevel(treeNode, currentPath) {
+            const navContainer = document.querySelector('.category-nav');
+            if (!navContainer) return;
+            navContainer.innerHTML = '';
+
+            if (currentPath.length === 0) {
+                const eliteBtn = document.createElement('a');
+                eliteBtn.href = "#elite";
+                eliteBtn.className = "category-pill";
+                eliteBtn.style = "border-color: var(--secondary-neon); color: var(--secondary-neon);";
+                eliteBtn.innerText = "🔥 Elite Discounts";
+                eliteBtn.onclick = () => { 
+                    currentActiveBreadcrumb = null; 
+                    renderProductsByPrefix(''); 
+                };
+                navContainer.appendChild(eliteBtn);
+            }
+
+            if (currentPath.length > 0) {
+                const backBtn = document.createElement('a');
+                backBtn.href = "#";
+                backBtn.className = "category-pill";
+                backBtn.style.background = "rgba(255,255,255,0.1)";
+                backBtn.innerText = "← Back to " + (currentPath.length > 1 ? currentPath[currentPath.length - 2] : "All Categories");
+                backBtn.onclick = (e) => {
+                    e.preventDefault();
+                    let newPath = [...currentPath];
+                    newPath.pop();
                     
-                    const isMatch = keywords.every(kw => textContent.includes(kw));
+                    let targetNode = taxonomyTree;
+                    newPath.forEach(p => targetNode = targetNode[p]._children);
                     
-                    if (isMatch) {
-                        card.style.display = 'flex';
+                    currentActiveBreadcrumb = newPath.join(' → ');
+                    renderNavLevel(targetNode, newPath);
+                    renderProductsByPrefix(currentActiveBreadcrumb);
+                };
+                navContainer.appendChild(backBtn);
+            }
+
+            const keys = Object.keys(treeNode).filter(k => k !== '_children');
+            keys.forEach(catName => {
+                const btn = document.createElement('a');
+                btn.href = "#";
+                btn.className = "category-pill";
+                btn.innerText = catName;
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    let targetPath = [...currentPath, catName];
+                    let childNode = treeNode[catName]._children;
+                    
+                    currentActiveBreadcrumb = targetPath.join(' → ');
+                    
+                    if (Object.keys(childNode).length === 0) {
+                        renderProductsByPrefix(currentActiveBreadcrumb);
+                        Array.from(navContainer.children).forEach(c => c.style.borderColor = '');
+                        btn.style.borderColor = 'var(--primary-neon)';
+                        btn.style.color = 'var(--primary-neon)';
                     } else {
-                        card.style.display = 'none';
+                        renderNavLevel(childNode, targetPath);
+                        renderProductsByPrefix(currentActiveBreadcrumb); 
+                    }
+                };
+                navContainer.appendChild(btn);
+            });
+            
+            if (document.getElementById('nexus-search') && document.getElementById('nexus-search').value) {
+                searchNexusHub();
+            }
+        }
+
+        function renderProductsByPrefix(prefix) {
+            document.querySelectorAll('.grid-container').forEach(grid => {
+                let hasVisible = false;
+                grid.querySelectorAll('.card').forEach(card => {
+                    const bcNode = card.querySelector('.meta-breadcrumb');
+                    const bcText = bcNode ? bcNode.textContent : "";
+                    
+                    if (!prefix || bcText.startsWith(prefix) || (card.closest('#elite-deals-live-grid') && !prefix)) {
+                        card.style.display = "flex";
+                        hasVisible = true;
+                    } else {
+                        card.style.display = "none";
                     }
                 });
                 
+                if (grid.previousElementSibling && grid.previousElementSibling.tagName === 'H2' && grid.id !== 'elite-deals-live-grid') {
+                    grid.previousElementSibling.style.display = hasVisible ? 'flex' : 'none';
+                }
+            });
+        }
+
+        function normalizeString(q) {
+            return q.toLowerCase().replace(/[^\w\s]/g, "");
+        }
+
+        function extractIntent(query) {
+            let n = normalizeString(query);
+            return {
+                raw: n.split(' ').filter(x => x.length > 0),
+                isWomen: n.includes("women") || n.includes("female") || n.includes("girl"),
+                isMen: (n.includes("men") && !n.includes("women")) || n.includes("male") || n.includes("boy"),
+                isKids: n.includes("kid") || n.includes("child") || n.includes("baby"),
+                isShoes: n.includes("shoe") || n.includes("footwear") || n.includes("sneaker"),
+                priceFilter: n.includes("100") ? 100 : (n.includes("499") ? 499 : (n.includes("999") ? 999 : null))
+            };
+        }
+
+        let searchTimeout;
+        function searchNexusHub() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = document.getElementById('nexus-search').value;
+                const intent = extractIntent(query);
+                
+                document.querySelectorAll('.card').forEach(card => {
+                    const titleNode = card.querySelector('.card-title');
+                    if(!titleNode) return;
+                    
+                    const titleStr = normalizeString(titleNode.textContent);
+                    const bcNode = card.querySelector('.meta-breadcrumb');
+                    const breadcrumb = bcNode ? bcNode.textContent.toLowerCase() : "";
+                    
+                    if (currentActiveBreadcrumb && !breadcrumb.startsWith(currentActiveBreadcrumb.toLowerCase())) {
+                        card.style.display = "none";
+                        return;
+                    }
+                    
+                    if (intent.isWomen && !breadcrumb.includes("women")) { card.style.display = "none"; return; }
+                    if (intent.isMen && !breadcrumb.includes("men")) { card.style.display = "none"; return; }
+                    if (intent.isKids && !breadcrumb.includes("kid") && !breadcrumb.includes("child")) { card.style.display = "none"; return; }
+                    
+                    if (intent.priceFilter) {
+                        const priceNode = card.querySelector('.card-price');
+                        const priceNum = priceNode ? parseInt(priceNode.textContent.replace(/[^0-9]/g, '')) : 9999;
+                        if (priceNum > intent.priceFilter) {
+                            card.style.display = "none";
+                            return;
+                        }
+                    }
+
+                    if (intent.raw.length > 0) {
+                        let rankScore = 0;
+                        const matchesAll = intent.raw.every(kw => {
+                            if (titleStr.includes(kw)) { rankScore += 5; return true; }
+                            if (breadcrumb.includes(kw)) { rankScore += 2; return true; }
+                            return false;
+                        });
+                        
+                        card.dataset.aiRank = rankScore;
+                        card.style.display = matchesAll ? "flex" : "none";
+                    } else {
+                        card.dataset.aiRank = 0;
+                        card.style.display = "flex";
+                    }
+                });
+                
+                // Sorting implicitly on Neural Weights
+                if (intent.raw.length > 0) {
+                    document.querySelectorAll('.grid-container').forEach(grid => {
+                        let cards = Array.from(grid.querySelectorAll('.card'));
+                        cards.sort((a, b) => (parseInt(b.dataset.aiRank) || 0) - (parseInt(a.dataset.aiRank) || 0));
+                        cards.forEach(c => grid.appendChild(c));
+                    });
+                }
+                
                 document.querySelectorAll('.grid-container').forEach(grid => {
-                    grid.style.display = 'flex';
-                    grid.style.flexWrap = 'wrap';
+                    const visibleCards = Array.from(grid.querySelectorAll('.card')).filter(c => c.style.display !== 'none');
+                    if (grid.previousElementSibling && grid.previousElementSibling.tagName === 'H2' && grid.id !== 'elite-deals-live-grid') {
+                        grid.previousElementSibling.style.display = visibleCards.length > 0 ? 'flex' : 'none';
+                    }
                 });
                 
                 if (typeof toggleFloatingNav === "function") toggleFloatingNav();
             }, 300);
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            buildAmazonTaxonomy();
+        });
 
         // Particle System: Star Exploasion on Click
         document.addEventListener('click', function(e) {
