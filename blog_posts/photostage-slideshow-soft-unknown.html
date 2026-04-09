@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PhotoStage Slideshow Software - Make slideshows from photos, videos and music easily</title>
     <style>
         :root {
@@ -62,8 +62,10 @@
         .secure-transaction { font-size: 0.85rem; color: var(--amazon-blue); margin-top: 15px; display: flex; align-items: center; gap: 8px; }
         
         @media (max-width: 768px) {
-            .container { flex-direction: column; }
-            .left-col, .right-col { max-width: 100%; }
+            .container { flex-direction: column; padding: 0 10px; }
+            .left-col, .mid-col, .right-col { max-width: 100%; width: 100%; margin-bottom: 20px; box-sizing: border-box; }
+            .left-col img { max-width: 100%; height: auto; }
+            body { font-size: 16px; }
         }
     </style>
 </head>
