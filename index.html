@@ -588,12 +588,6 @@
                 
                 <a href="#cat-Set of 2" class="category-pill">Set of 2</a>
                 
-                <a href="#cat-Set of 3" class="category-pill">Set of 3</a>
-                
-                <a href="#cat-Set of 4" class="category-pill">Set of 4</a>
-                
-                <a href="#cat-Set of 5" class="category-pill">Set of 5</a>
-                
                 <a href="#cat-Under ₹99" class="category-pill">Under ₹99</a>
                 
                 <a href="#cat-Under ₹999" class="category-pill">Under ₹999</a>
@@ -708,45 +702,6 @@
                 </div>
             </div>
             
-            
-        </div>
-        
-        <h2 class="section-title" id="cat-Set of 3">Set of 3</h2>
-        
-        <div class="sub-tabs-container" style="display: flex; gap: 10px; padding: 0 5% 1rem; overflow-x: auto;">
-            <button class="tab-btn active" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: 4px; border-bottom: none; background: rgba(0,240,255,0.1); border: 1px solid var(--primary-neon);" onclick="filterSubCategory(this, 'all', 'grid-Set-of-3')">All</button>
-            
-            
-            
-        </div>
-
-        <div class="grid-container sortable-grid" id="grid-Set-of-3">
-            
-        </div>
-        
-        <h2 class="section-title" id="cat-Set of 4">Set of 4</h2>
-        
-        <div class="sub-tabs-container" style="display: flex; gap: 10px; padding: 0 5% 1rem; overflow-x: auto;">
-            <button class="tab-btn active" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: 4px; border-bottom: none; background: rgba(0,240,255,0.1); border: 1px solid var(--primary-neon);" onclick="filterSubCategory(this, 'all', 'grid-Set-of-4')">All</button>
-            
-            
-            
-        </div>
-
-        <div class="grid-container sortable-grid" id="grid-Set-of-4">
-            
-        </div>
-        
-        <h2 class="section-title" id="cat-Set of 5">Set of 5</h2>
-        
-        <div class="sub-tabs-container" style="display: flex; gap: 10px; padding: 0 5% 1rem; overflow-x: auto;">
-            <button class="tab-btn active" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: 4px; border-bottom: none; background: rgba(0,240,255,0.1); border: 1px solid var(--primary-neon);" onclick="filterSubCategory(this, 'all', 'grid-Set-of-5')">All</button>
-            
-            
-            
-        </div>
-
-        <div class="grid-container sortable-grid" id="grid-Set-of-5">
             
         </div>
         
@@ -13307,15 +13262,18 @@
                 
                 const fixedTabs = ["Set of 2", "Set of 3", "Set of 4", "Set of 5", "Under ₹99", "Under ₹999", "Under ₹9999"];
                 fixedTabs.forEach(tab => {
-                    const tBtn = document.createElement('a');
-                    tBtn.href = "#cat-" + tab;
-                    tBtn.className = "category-pill";
-                    tBtn.innerText = tab;
-                    tBtn.onclick = () => {
-                        currentActiveBreadcrumb = null;
-                        renderProductsByPrefix('');
-                    };
-                    navContainer.appendChild(tBtn);
+                    // Only append native filters if products matched them today
+                    if (document.getElementById(`cat-${tab}`)) {
+                        const tBtn = document.createElement('a');
+                        tBtn.href = "#cat-" + tab;
+                        tBtn.className = "category-pill";
+                        tBtn.innerText = tab;
+                        tBtn.onclick = () => {
+                            currentActiveBreadcrumb = null;
+                            renderProductsByPrefix('');
+                        };
+                        navContainer.appendChild(tBtn);
+                    }
                 });
             }
 
