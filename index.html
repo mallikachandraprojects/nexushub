@@ -68037,29 +68037,39 @@
     <!-- Scripts -->
     <script>
         // High Quality Audio Engine (Web Audio API - Zero external dependencies)
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx_lazy = null;
+        function getCtx() {
+            if(!audioCtx_lazy) { try{ audioCtx_lazy = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){return null;} }
+            return audioCtx_lazy;
+        }
         
         function playTone(freq, type, duration, vol) {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            
-            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            try {
+                let ctx = getCtx();
+                if(!ctx) return;
+                if(ctx.state === 'suspended') ctx.resume();
+                const osc = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                
+                gainNode.gain.setValueAtTime(vol, ctx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+                
+                osc.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch(e) {}
         }
 
         function playClickSound() {
-            // Futuristic smooth blip
-            playTone(800, 'sine', 0.1, 0.1);
-            setTimeout(() => playTone(1200, 'sine', 0.15, 0.05), 50);
+            try {
+                // Futuristic smooth blip
+                playTone(800, 'sine', 0.1, 0.1);
+                setTimeout(() => playTone(1200, 'sine', 0.15, 0.05), 50);
+            } catch(e) {}
         }
         
         function playMagicalSound() {
@@ -68818,7 +68828,7 @@
                     const oldPriceHTML = item.original_price > item.price ? `<div class="card-original-price">₹${item.formatted_original}</div>` : '';
                     
                     const cardHTML = `
-                        <div class="card" data-price="${item.price}" data-rating="${item.rating_clean}" data-history="[]" onclick="playClickSound(); goLink(window.location.hostname.includes('github') ? '/nexushub/blog_posts/' + item.seo_slug + '.html' : '/product/' + item.asin_direct)">
+                        <div class="card" data-price="${item.price}" data-rating="${item.rating_clean}" data-history="[]" onclick="playClickSound(); goLink(window.location.hostname.includes('github') ? '/nexushub/blog_posts/${item.seo_slug}.html' : '/product/${item.asin_direct}')">
                             <div class="card-img-placeholder">
                                 <img src="${item.image}" alt="Image" loading="lazy" onerror="this.src='https://via.placeholder.com/400x400.png?text=Image+Not+Found'">
                                 ${discountBadge}
@@ -68890,4 +68900,4 @@
     </script>
 </body>
 </html>
-<!-- DOM HARD CACHE BUST: 1776885850.6878517 -->
+<!-- DOM HARD CACHE BUST: 1776886443.964712 -->
